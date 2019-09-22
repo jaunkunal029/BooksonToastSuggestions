@@ -4,7 +4,8 @@ import random
 import time
 import webbrowser
 import pickle
-import pprint
+from os import path
+
 
 api_key = "AIzaSyAbDCb44y-AEKqscn4UwodlgAFxJU9BZwE"
 
@@ -14,6 +15,11 @@ youtube = build('youtube', 'v3', developerKey=api_key)
 
 
 def get_channel_videos(channel_id):
+    """
+    To get all the meta info about the videos present on the channel.
+    :param channel_id:
+    :return: A list of all the videos along with all their respective meta information
+    """
 
     print('in the youtube api calling function')
     res = youtube.channels().list(id=channel_id, part='contentDetails').execute()
@@ -38,6 +44,12 @@ def get_channel_videos(channel_id):
 
 
 def get_total_number_of_videos(channel_id):
+    """
+    Used this function to cross reference our checkpoint file that is saved on the disk.
+
+    :param channel_id:
+    :return: Total number of videos that are present on the channel
+    """
 
     res = youtube.channels().list(id=channel_id, part='contentDetails').execute()
 
@@ -50,6 +62,13 @@ def get_total_number_of_videos(channel_id):
 
 
 def generate_suggestion(videolist, choice):
+    """
+    From the video snippet we take the video description and extract only amazon web links using regex.
+    We then make a dictionary of the episode title and all the amazon links present in the description text.
+    :param videolist:
+    :param choice:
+    :return: Episode title and amazon link OR list of random episodes and the random_suggestion dic
+    """
 
     random_suggestion = {}
 
@@ -76,6 +95,12 @@ def generate_suggestion(videolist, choice):
 
 
 def open_amazon_link(episode_title, web_link):
+    """
+    Opens the chrome web browser with web link.
+    :param episode_title:
+    :param web_link:
+    :return: None
+    """
 
     # Use the web browser to open the amazon link in chrome
     print('Video title from which the book suggestion is picked: ', episode_title)
@@ -85,22 +110,46 @@ def open_amazon_link(episode_title, web_link):
     print('exiting')
 
 
-def check_total_number_videos():
+def file_check():
+    """
+    Checks if a checkpoint file is present or not. If not, it populates it with the latest descriptions of all the
+    videos of the BotCast channel.
 
-    # checkpoint = dict()
+    If file is present, it checks whether it has all the descriptions or not.
 
-    with open('checkAPIList.txt', 'rb') as handle:
-        checkpoint = pickle.load(handle)
-    handle.close()
+    :return: None
+    """
+    if path.exists('checkAPIList.txt') is True:
 
-    total_number_of_videos = get_total_number_of_videos('UCSzPk0ShJD6ygdZw7HqK5QA')
-    # print('get total number', total_number_of_videos)
+        print('file is present')
 
-    if checkpoint['prev_number_of_videos'] != total_number_of_videos:
+        with open('checkAPIList.txt', 'rb') as handle:
+            checkpoint = pickle.load(handle)
+        handle.close()
+
+        total_number_of_videos = get_total_number_of_videos('UCSzPk0ShJD6ygdZw7HqK5QA')
+
+        if checkpoint['prev_number_of_videos'] != total_number_of_videos:
+            print('time to call youtube api')
+            videolist = get_channel_videos('UCSzPk0ShJD6ygdZw7HqK5QA')
+            checkpoint['Video_Details'] = videolist
+            checkpoint['prev_number_of_videos'] = total_number_of_videos
+
+            with open('checkAPIList.txt', 'wb') as handle:
+                pickle.dump(checkpoint, handle)
+
+            handle.close()
+
+    elif path.exists('checkAPIList.txt') is False:
+
+        print('file is not present')
+
+        checkpoint = dict()
+
         print('time to call youtube api')
         videolist = get_channel_videos('UCSzPk0ShJD6ygdZw7HqK5QA')
         checkpoint['Video_Details'] = videolist
-        checkpoint['prev_number_of_videos'] = total_number_of_videos
+        checkpoint['prev_number_of_videos'] = get_total_number_of_videos('UCSzPk0ShJD6ygdZw7HqK5QA')
 
         with open('checkAPIList.txt', 'wb') as handle:
             pickle.dump(checkpoint, handle)
@@ -111,7 +160,7 @@ def check_total_number_videos():
 # check_total_number_videos()
 if __name__ == '__main__':
 
-    check_total_number_videos()
+    file_check()
     checkpoint = dict()
 
     with open('checkAPIList.txt', 'rb') as handle:
