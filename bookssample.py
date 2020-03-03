@@ -7,7 +7,7 @@ import pickle
 from os import path
 
 
-api_key = "AIzaSyAbDCb44y-AEKqscn4UwodlgAFxJU9BZwE"
+api_key = "apikey"
 
 youtube = build('youtube', 'v3', developerKey=api_key)
 
